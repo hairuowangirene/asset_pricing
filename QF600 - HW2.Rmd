@@ -1,0 +1,483 @@
+---
+title: "QF600 Asset Pricing Homework 2"
+author: "Wang Hairuo"
+date: '2022-09-26'
+output:
+  pdf_document:
+    template: report.tex
+    toc: yes
+    toc_depth: 2
+lang: en
+subtitle: Capital Asset Pricing Model (CAPM)
+titlepage: yes
+titlepage-color: 6C3082
+titlepage-text-color: FFFFFF
+titlepage-rule-color: FFFFFF
+titlepage-rule-height: 2
+---
+
+```{r, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(readxl)
+```
+
+\newpage
+
+# Part 1: Market Model
+
+Estimate the intercept coefficient ($\alpha$) and slope coefficient ($\beta$) for each of the ten industry portfolio using the market model: regress the monthly excess returns for each industry portfolio on the monthly excess returns for the market portfolio.
+
+## `Question 1`: Create a table showing the intercept and slope coefficients for the ten industry portfolios.
+
+```{r, include = FALSE}
+# import the industry portfolio data
+industry_df = read_excel("Industry_Portfolios.xlsx")
+# remove the column of date from the industry portfolio data frame
+industry_df = industry_df %>% 
+  select(!Date)
+# import the market portfolio data
+market_df = read_excel("Market_Portfolio.xlsx")
+# remove the column of date from the market portfolio data frame
+market_df = market_df %>% 
+  select(!Date)
+```
+
+```{r, include = FALSE}
+# set up the risk-free rate
+return_f = 0.13
+# compute the excess return for assets
+asset_excessr = industry_df - return_f
+# compute the excess return for market
+market_excessr = market_df - return_f
+# extract excess return for assets and market into one data frame
+return_df = data.frame(asset_excessr, market_excessr)
+```
+
+```{r, include = FALSE}
+# regress the industry NoDur excess return on market portfolio excess return
+model1 = lm(NoDur ~ Market, data = return_df)
+# extract the intercept (alpha) for the model of industry NoDur
+alpha1 = summary(model1)$coefficients[1]
+# extract the slope (beta) for the model of industry NoDur
+beta1 = summary(model1)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Durbl excess return on market portfolio excess return
+model2 = lm(Durbl ~ Market, data = return_df)
+# extract the intercept (alpha) for the model of industry Durbl
+alpha2 = summary(model2)$coefficients[1]
+# extract the slope (beta) for the model of industry Durbl
+beta2 = summary(model2)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Manuf excess return on market portfolio excess return
+model3 = lm(Manuf ~ Market, data = return_df)
+# extract the intercept (alpha) for the model of industry Manuf
+alpha3 = summary(model3)$coefficients[1]
+# extract the slope (beta) for the model of industry Manuf
+beta3 = summary(model3)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Enrgy excess return on market portfolio excess return
+model4 = lm(Enrgy ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Enrgy
+alpha4 = summary(model4)$coefficients[1]
+# extract the slope (beta) of the model of industry Enrgy
+beta4 = summary(model4)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry HiTec excess return on market portfolio excess return 
+model5 = lm(HiTec ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry HiTec
+alpha5 = summary(model5)$coefficients[1]
+# extract the slope (beta) of the model of industry HiTec
+beta5 = summary(model5)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Telcm excess return on market portfolio excess return
+model6 = lm(Telcm ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Telcm
+alpha6 = summary(model6)$coefficients[1]
+# extract the slope (beta) of the model of industry Telcm
+beta6 = summary(model6)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Shops excess return on market portfolio excess return
+model7 = lm(Shops ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Shops
+alpha7 = summary(model7)$coefficients[1]
+# extract the slope (beta) of the model of industry Shops
+beta7 = summary(model7)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Hlth excess return on market portfolio excess return
+model8 = lm(Hlth ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Hlth
+alpha8 = summary(model8)$coefficients[1]
+# extract the slope (beta) of the model of industry Hlth
+beta8 = summary(model8)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the industry Utils excess return on market portfolio excess return
+model9 = lm(Utils ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Utils
+alpha9 = summary(model9)$coefficients[1]
+# extract the slope (beta) of the model of industry Utils
+beta9 = summary(model9)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# regress the other industry excess return on market portfolio excess return
+model10 = lm(Other ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of other industry
+alpha10 = summary(model10)$coefficients[1]
+# extract the slope (beta) of the model of other industry
+beta10 = summary(model10)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# combine the alpha and beta for each portfolio into data frame respectively
+alpha_df = rbind(alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9,alpha10)
+beta_df = rbind(beta1, beta2, beta3, beta4, beta5, beta6, beta7, beta8, beta9, beta10)
+```
+
+```{r, echo = FALSE}
+# combine the alpha and beta data frame
+alpha_beta_df = data.frame(alpha_df, beta_df, 
+                           row.names = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+# perform the table of intercept and slope coefficients
+kable(alpha_beta_df, 
+      # add columns name
+      col.names = c("alpha - Intercept", "beta - Slope"), 
+      # add caption for the table
+      caption = "Intercept and Slope Coefficients for Ten Industry Portfolios", 
+      # adjust the column alignment to center
+      align = "c")
+```
+
+Table 1 shows the intercept and slope coefficient for the models of ten industry portfolio and market portfolio respectively. 
+
+\newpage
+
+## `Question 2`: Briefly explain the economic significant of intercept and slope coefficients. 
+
+The formula for capital asset pricing model (CAPM) is:
+
+$$
+R_i - R_f = \beta_i (R_m - R_f) + \epsilon_i
+$$
+
+The formula for market model is 
+
+$$
+R_i - R_f = \alpha_i + \beta_i (R_m - R_f) + \epsilon_i
+$$
+
+where $\alpha$ is the intercept of the market model and that represents the pricing error compare to capital asset pricing model for passive portfolio. The intercept coefficient also considered as **Jensen's alpha**. That represents the $\alpha$ measured active portfolio that **difference of average return on portfolio above or below that predicted by capital asset pricing model with same systematic risk**. Thus, the coefficient of intercept $\alpha$ for the capital asset pricing model is 0. If the $\alpha$ closer to 0, that means the the average excess return on the industry portfolio is same as the excess return that predicted by capital asset pricing model. If the coefficient of $\alpha$ is **positive**, that demonstrates that the excess return on the industry portfolio above that predicted by CAPM. For the other case, the coefficient of $\alpha$ is **negative**, that demonstrates that the excess return on the industry portfolio below that predicted by CAPM. Moreover, if the coefficient of $\alpha$ is not 0, that demonstrates there is pricing error for the market model of specific industry portfolio relative to capital asset pricing model. 
+
+For the case of industry portfolio, there are three industry portfolios have the negative coefficient of $\alpha$, which are Durbl, HiTec, Other industry portfolios. For these industry portfolios, **they have underperform the market.** For the other industry portfolios with positive coefficient of $\alpha$, **they have outperform the market.** Furthermore, there is no zero coefficient of $\alpha$ for industry portfolios, that means the market model for all industry portfolios have pricing error relative to captial asset pricing model. 
+
+The $\beta$ is the slope of the market model and that represents the amount of exposure to the **systematic risk** of the industry portfolio. The market portfolio has the $\beta$ and systematic risk of 1. Therefore, the coefficient of $\beta$ is greater than 1 and that means the industry portfolio has the greater systematic risk compare with the market. For the other cases, if the coefficient of $\beta$ is less than 1 and greater than 0, that represents the industry portfolio has the smaller systematic risk compare with the market. 
+
+For the case of industry portfolio, there are four industry portfolios have coefficient of $\beta$ greater than 1, that means these industry portfolios have **greater systematic risk relatively to the market**. For the other industry portfolios with coefficient of $\beta$ less than 1 and greater than 0, that demonstrate the industry portfolio has the **smaller systematic risk compare with the market.**
+
+# Part 2: Security Market Line (SML)
+
+Calculate the mean monthly return for each of the ten industry portfolios, as well as the market portfolio.
+
+Regress the mean monthly returns of the ten industry portfolios and the market portfolio on the corresponding $\beta$'s. This will give you the intercept and slope coefficients for the SML. 
+
+## `Question 1`: Use the estimated intercept and slope coefficients for the SML to plot the SML in the range of $\beta$ from zero to two on the horizontal axis. Also plot the positions of the ten industry portfolios and the market portfolio. (You are NOT required to label the individual portfolios.)
+
+```{r, include=FALSE}
+# compute the mean return for 10 industry portfolios
+portfolio_mean = colMeans(industry_df)
+# compute the mean return for market portfolio
+market_mean = colMeans(market_df)
+# combine the mean return for industry portfolio and market portfolio into one data frame
+capm_return_df = c(portfolio_mean, market_mean)
+# extract the value of beta from part 1 
+# the beta for market portfolio is 1
+beta_df = c(alpha_beta_df$beta_df, 1)
+# combine the mean return and beta of portfolios into one data frame
+capm_df = data.frame(capm_return_df, beta_df)
+# change the column name of data frame
+colnames(capm_df) = c("return", "beta")
+```
+
+```{r, include = FALSE}
+# regress the return and beta of portfolio
+sml_model = lm(return ~ beta, data = capm_df)
+# compute the beta value for sml
+risk_sml = seq(0, 2, by = 0.01)
+# extract the intercept (alpha) for the sml model
+alpha_sml = rep(summary(sml_model)$coefficients[1], times = length(risk_sml))
+# extract the slope (beta) for sml model
+beta_sml = summary(sml_model)$coefficients[2]
+# compute the return for sml
+return_sml = t(alpha_sml + beta_sml %*% risk_sml)
+# combine the beta and return for sml into one data frame
+# prepare for the plot
+plt_df = data.frame(risk_sml, return_sml)
+```
+
+```{r, include = FALSE}
+# add label to industry portfolio and market portfolio respectively
+point_df = capm_df %>% 
+  mutate(label = c("Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Market"))
+```
+
+```{r, echo = FALSE}
+# plot the security market line and plot the position of each portfolio
+plt_df %>% 
+  # beta as x-axis and return as y-axis
+  ggplot(aes(x = risk_sml, y = return_sml)) + 
+  # plot as line figure
+  geom_line() +
+  # plot the position of each portfolio as point figure
+  geom_point(data = point_df, aes(x = beta, y = return, color = factor(label))) +
+  # use the minimalistic theme with no background annotations
+  theme_minimal() + 
+  # add title to figure
+  labs(caption = str_c("Figure 1. Security Market Line with the Position of 10 Industry Portfolios and Market Portfolio"), 
+       # add x label of beta
+       x = "beta - Systematic Risk", 
+       # add y label of return
+       y = "Expected Return of Portfolio", 
+       # add legend title
+       color = "Portfolios")
+```
+
+The figure 1 shows the security market line with the position of 10 industry portfolios and the market portfolio. The security market line has the negative slope, and the red dot is the position of industry portfolios and the green dot is the position of market portfolio. 
+
+## `Question 2`: Briefly explain the economic significance of the SML.
+
+According to the defination of security market line, that is the grpahical representation of captial asset pricing model formula. 
+
+The capital asset pricing model formula is, 
+
+$$
+R_i - R_f = \beta (R_m - R_f)
+$$
+
+where $R_i - R_f$ represents the excess return for specific industry portfolio, $R_m - R_f$ represents the excess return for market portfolio and $\beta$ represents the exposure amount of systematic risk. 
+
+Capital asset pricing model shows the relationship between systematic risk of the portfolio with the expected return. Thus, the security market line also show the graphical relationship between the systematic risk of portfolio on x-axis and the expected return of portfolio on y-axis.
+
+Theoretically, the intercept of security market line is risk-free rate and the slope is the ratio of risk premium to beta and that considered as Treynor ratio of the market portfolio. Thus, the risky assets on the security market line have the same Treynor ratio. 
+
+Furthermore, the security market line could determine if the investment portfolio has the favourable expetation of return with the given level of sysmetic risk. If the portfolio lies above security market line is **underpriced**, then the investor could **buy the portfolio and that would cause price to rise** back to security market line. On the other hand, if the portfolio lies below security market line is **overpriced**, then the investor could **sell the portfolio and that would cause the price fall back on security market line.**
+
+
+\newpage
+
+# Appendix
+
+## `Part 1 - Question 1 Code`
+
+```{r, results='hide'}
+# import the industry portfolio data
+industry_df = read_excel("Industry_Portfolios.xlsx")
+# remove the column of date from the industry portfolio data frame
+industry_df = industry_df %>% 
+  select(!Date)
+# import the market portfolio data
+market_df = read_excel("Market_Portfolio.xlsx")
+# remove the column of date from the market portfolio data frame
+market_df = market_df %>% 
+  select(!Date)
+```
+
+```{r, results = 'hide'}
+# set up the risk-free rate
+return_f = 0.13
+# compute the excess return for assets
+asset_excessr = industry_df - return_f
+# compute the excess return for market
+market_excessr = market_df - return_f
+# extract excess return for assets and market into one data frame
+return_df = data.frame(asset_excessr, market_excessr)
+```
+
+```{r, results = 'hide'}
+# regress the industry NoDur excess return on market portfolio excess return
+model1 = lm(NoDur ~ Market, data = return_df)
+# extract the intercept (alpha) for the model of industry NoDur
+alpha1 = summary(model1)$coefficients[1]
+# extract the slope (beta) for the model of industry NoDur
+beta1 = summary(model1)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Durbl excess return on market portfolio excess return
+model2 = lm(Durbl ~ Market, data = return_df)
+# extract the intercept (alpha) for the model of industry Durbl
+alpha2 = summary(model2)$coefficients[1]
+# extract the slope (beta) for the model of industry Durbl
+beta2 = summary(model2)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Manuf excess return on market portfolio excess return
+model3 = lm(Manuf ~ Market, data = return_df)
+# extract the intercept (alpha) for the model of industry Manuf
+alpha3 = summary(model3)$coefficients[1]
+# extract the slope (beta) for the model of industry Manuf
+beta3 = summary(model3)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Enrgy excess return on market portfolio excess return
+model4 = lm(Enrgy ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Enrgy
+alpha4 = summary(model4)$coefficients[1]
+# extract the slope (beta) of the model of industry Enrgy
+beta4 = summary(model4)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry HiTec excess return on market portfolio excess return 
+model5 = lm(HiTec ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry HiTec
+alpha5 = summary(model5)$coefficients[1]
+# extract the slope (beta) of the model of industry HiTec
+beta5 = summary(model5)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Telcm excess return on market portfolio excess return
+model6 = lm(Telcm ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Telcm
+alpha6 = summary(model6)$coefficients[1]
+# extract the slope (beta) of the model of industry Telcm
+beta6 = summary(model6)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Shops excess return on market portfolio excess return
+model7 = lm(Shops ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Shops
+alpha7 = summary(model7)$coefficients[1]
+# extract the slope (beta) of the model of industry Shops
+beta7 = summary(model7)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Hlth excess return on market portfolio excess return
+model8 = lm(Hlth ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Hlth
+alpha8 = summary(model8)$coefficients[1]
+# extract the slope (beta) of the model of industry Hlth
+beta8 = summary(model8)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the industry Utils excess return on market portfolio excess return
+model9 = lm(Utils ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of industry Utils
+alpha9 = summary(model9)$coefficients[1]
+# extract the slope (beta) of the model of industry Utils
+beta9 = summary(model9)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# regress the other industry excess return on market portfolio excess return
+model10 = lm(Other ~ Market, data = return_df)
+# extract the intercept (alpha) of the model of other industry
+alpha10 = summary(model10)$coefficients[1]
+# extract the slope (beta) of the model of other industry
+beta10 = summary(model10)$coefficients[2]
+```
+
+```{r, results = 'hide'}
+# combine the alpha and beta for each portfolio into data frame respectively
+alpha_df = rbind(alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9,alpha10)
+beta_df = rbind(beta1, beta2, beta3, beta4, beta5, beta6, beta7, beta8, beta9, beta10)
+```
+
+```{r, results = 'hide'}
+# combine the alpha and beta data frame
+alpha_beta_df = data.frame(alpha_df, beta_df, 
+                           row.names = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+# perform the table of intercept and slope coefficients
+kable(alpha_beta_df, 
+      # add columns name
+      col.names = c("alpha - Intercept", "beta - Slope"), 
+      # add caption for the table
+      caption = "Intercept and Slope Coefficients for Ten Industry Portfolios", 
+      # adjust the column alignment to center
+      align = "c")
+```
+
+\newpage
+
+## `Part 2 - Question 1 Code`
+
+```{r, results='hide'}
+# compute the mean return for 10 industry portfolios
+portfolio_mean = colMeans(industry_df)
+# compute the mean return for market portfolio
+market_mean = colMeans(market_df)
+# combine the mean return for industry portfolio and market portfolio into one data frame
+capm_return_df = c(portfolio_mean, market_mean)
+# extract the value of beta from part 1 
+# the beta for market portfolio is 1
+beta_df = c(alpha_beta_df$beta_df, 1)
+# combine the mean return and beta of portfolios into one data frame
+capm_df = data.frame(capm_return_df, beta_df)
+# change the column name of data frame
+colnames(capm_df) = c("return", "beta")
+```
+
+```{r, results = 'hide'}
+# regress the return and beta of portfolio
+sml_model = lm(return ~ beta, data = capm_df)
+# compute the beta value for sml
+risk_sml = seq(0, 2, by = 0.01)
+# extract the intercept (alpha) for the sml model
+alpha_sml = rep(summary(sml_model)$coefficients[1], times = length(risk_sml))
+# extract the slope (beta) for sml model
+beta_sml = summary(sml_model)$coefficients[2]
+# compute the return for sml
+return_sml = t(alpha_sml + beta_sml %*% risk_sml)
+# combine the beta and return for sml into one data frame
+# prepare for the plot
+plt_df = data.frame(risk_sml, return_sml)
+```
+
+```{r, results = 'hide'}
+# add label to industry portfolio and market portfolio respectively
+point_df = capm_df %>% 
+  mutate(label = c("Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Industry", "Market"))
+```
+
+```{r, fig.show = 'hide'}
+# plot the security market line and plot the position of each portfolio
+plt_df %>% 
+  # beta as x-axis and return as y-axis
+  ggplot(aes(x = risk_sml, y = return_sml)) + 
+  # plot as line figure
+  geom_line() +
+  # plot the position of each portfolio as point figure
+  geom_point(data = point_df, aes(x = beta, y = return, color = factor(label))) +
+  # use the minimalistic theme with no background annotations
+  theme_minimal() + 
+  # add title to figure
+  labs(caption = str_c("Figure 1. Security Market Line with the Position of 10 Industry Portfolios and Market Portfolio"), 
+       # add x label of beta
+       x = "beta - Systematic Risk", 
+       # add y label of return
+       y = "Expected Return of Portfolio", 
+       # add legend title
+       color = "Portfolios")
+```
