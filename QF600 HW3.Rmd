@@ -1,0 +1,983 @@
+---
+title: "QF600 Asset Pricing Homework 3"
+author: "Wang Hairuo"
+date: '2022-10-03'
+output:
+  pdf_document:
+    template: report.tex
+    toc: yes
+    toc_depth: 2
+lang: en
+subtitle: Linear Factor Model
+titlepage: yes
+titlepage-color: 6C3082
+titlepage-text-color: FFFFFF
+titlepage-rule-color: FFFFFF
+titlepage-rule-height: 2
+---
+
+```{r, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(readxl)
+```
+
+```{r, include = FALSE}
+# import the data frame of risk factors for fama-french model
+factor_df = read_excel("Risk_Factors.xlsx") %>% 
+  # drop the column of data
+  select(!Date)
+# import the data frame of industry portfolios
+industry_df = read_excel("Industry_Portfolios.xlsx")
+# drop the column of data frame 
+industry_df = industry_df %>% 
+  select(!Date)
+```
+
+\newpage
+
+# Part 1: Computation
+
+## Question 1: Using excess returns for the ten industry portfolios, calculate the following performance metrics
+
+### Sharpe Ratio
+
+The Sharpe Ratio formula is below:
+
+$$
+S_i = \frac{E(R_i- R_f)}{\sqrt{Var(R_i - R_f)}}
+$$
+
+Therefore, we need to compute the excess return for each industry portfolios. Furthermore, we need to compute the expectation of excess return and standard deviation for each industry portfolios to calculate the Sharpe ratio respectively. 
+
+```{r, include = FALSE}
+# compute the excess return of industry portfolios
+excess_industry_df = industry_df - factor_df$Rf
+# compute the mean of excess return of industry portfolios
+excess_return = colMeans(excess_industry_df)
+# compute the variance of excess return of industry portfolios
+var_return = diag(cov(excess_industry_df))
+```
+
+```{r, echo = FALSE}
+# compute the Sharpe ratio
+sharpe = excess_return / sqrt(var_return)
+# create a table to show the sharpe ratio
+kable(sharpe, 
+      col.names = "Sharpe Ratio", 
+      caption = "The Sharpe ratio for Ten Industry Portfolios")
+```
+**Table 1** shows the Sharpe ratio for each industry portfolio respectively. 
+
+### Sortino Ratio (Using Risk-Free Rate as Target)
+
+The Sortino ratio formula is below:
+
+$$
+S_{t_i} = \frac{E(R_i - R_t)}{\sqrt{SV(R_i; R_t)}}
+$$
+
+Thus, we need to compute the target return for each industry portfolios and we use the risk-free rate as target return. Furthermore, we need to compute the expectation of excess return and the below-target semi-deviation for each industry portfolios to compute Sortino ratio respectively. 
+
+On the other hands, the estimated sample semi-variance formula is:
+
+$$
+\frac{1}{T} \sum_{t=1}^{T} \text{min} (R_{it} - R_{ft}, 0) ^ 2
+$$
+
+We could use the square root of below-target semi-variance as denominator for the Sortino ratio. 
+
+```{r include = FALSE}
+# compute the below-target semi-variance
+semivar_df = data.frame()
+for (i in seq(nrow(excess_industry_df))){
+  for (j in seq(ncol(excess_industry_df))){
+    if(excess_industry_df[i, j] < 0){
+      semivar_df[i, j] = excess_industry_df[i, j] ^ 2
+    } else{
+      semivar_df[i, j] = 0
+    }
+  }
+}
+# reset the column name for semi-variance dataframe
+colnames(semivar_df) = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")
+# compute the below-target semi-variance
+semidev_target = colMeans(semivar_df)
+```
+
+```{r, echo = FALSE}
+# compute the sortino ratio for industry portfolios
+sortino = excess_return / sqrt(semidev_target)
+# create a table to show the sortiono ratio for industry portfolios
+kable(sortino, 
+      col.names = "Sortino Ratio", 
+      caption = "The Sortino Ratio for Ten Industry Portfolios")
+```
+
+**Table 2** shows the Sortino ratio for ten industry portfolios respectively.
+
+### Treynor Ratio (Using CAPM $\beta$)
+
+The Treynor ratio formula is below:
+
+$$
+T_i = \frac{E(R_i - R_f)}{\beta_i}
+$$
+
+Therefore, we need to compute the expectation of excess return of industry portfolios and the slope $\beta$ of capital asset pricing model of industry portfolios to calculate the Treynor ratio for each industry portfolios respectively. 
+
+
+```{r, echo = FALSE}
+# create a data frame includes the excess return
+return_df = data.frame(excess_industry_df)
+# add the market excess return into the data frame
+return_df$market_risk = factor_df$`Rm-Rf`
+```
+
+```{r, include = FALSE}
+# fit the market model for industry NoDur
+model1 = lm(NoDur ~ market_risk, data = return_df)
+# beta of CAPM for industry NoDur
+beta1 = summary(model1)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for industry Durbl
+model2 = lm(Durbl ~ market_risk, data = return_df)
+# beta of CAPM for industry Durbl
+beta2 = summary(model2)$coefficients[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for industry Manuf
+model3 = lm(Manuf ~ market_risk, data = return_df)
+# beta of CAPM for industry Manuf
+beta3 = summary(model3)$coefficients[2]
+```
+
+```{r, include=FALSE}
+# fit the market model for industry Enrgy
+model4 = lm(Enrgy ~ market_risk, data = return_df)
+# beta of CAPM for industry Enrgy
+beta4 = summary(model4)$coefficient[2]
+```
+
+```{r, include=FALSE}
+# fit the market model for industry HiTec
+model5 = lm(HiTec ~ market_risk, data = return_df)
+# beta of CAPM for industry HiTec
+beta5 = summary(model5)$coefficient[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for industry Telcm
+model6 = lm(Telcm ~ market_risk, data = return_df)
+# beta of CAPM for industry Telcm
+beta6 = summary(model6)$coefficient[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for industry Shops
+model7 = lm(Shops ~ market_risk, data = return_df)
+# beta of CAPM for industry Shops
+beta7 = summary(model7)$coefficient[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for industry Hlth
+model8 = lm(Hlth ~ market_risk, data = return_df)
+# beta of CAPM for industry Hlth
+beta8 = summary(model8)$coefficient[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for industry Utils
+model9 = lm(Utils ~ market_risk, data = return_df)
+# beta of CAPM for industry Utils
+beta9 = summary(model9)$coefficient[2]
+```
+
+```{r, include = FALSE}
+# fit the market model for other industry
+model10 = lm(Other ~ market_risk, data = return_df)
+# beta of CAPM for other industry
+beta10 = summary(model10)$coefficient[2]
+```
+
+```{r, include = FALSE}
+# extract the slope coefficient from each market model
+beta_df = data.frame(rbind(beta1, beta2, beta3, beta4, beta5, beta6, beta7, beta8, beta9, beta10), 
+                     row.names = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+
+# reset the column name for beta data frame
+colnames(beta_df) = "Beta"
+```
+
+```{r, echo = FALSE}
+# compute the Treynor ratio for each industry portfolio
+Treynor = excess_return / beta_df
+# create a table to show Treynor ratio for industry portfolios
+kable(Treynor, 
+      col.names = "Treynor Ratio", 
+      caption = "The Treynor Ratio for Ten Industry Portfolios")
+```
+
+**Table 3** shows the Treynor ratio for ten industry portfolios respectively.
+
+
+### Jensen's $\alpha$
+
+The Jensen'a $\alpha$ is the intercept coefficient of market model, and the formula for Jensen's $\alpha$ is that:
+
+$$
+\alpha_i = E(R_i - R_f) - \beta_i E(R_m - R_f)
+$$
+
+Therefore, we need to fit the specific industry portfolio excess return with the market excess return and extract the intercept coefficient for the market model of each industry portfolio respectively. 
+
+```{r, include = FALSE}
+# extract the intercept coefficients from the market model for each industry portfolios
+alpha1 = summary(model1)$coefficients[1]
+alpha2 = summary(model2)$coefficients[1]
+alpha3 = summary(model3)$coefficients[1]
+alpha4 = summary(model4)$coefficients[1]
+alpha5 = summary(model5)$coefficients[1]
+alpha6 = summary(model6)$coefficients[1]
+alpha7 = summary(model7)$coefficients[1]
+alpha8 = summary(model8)$coefficients[1]
+alpha9 = summary(model9)$coefficients[1]
+alpha10 = summary(model10)$coefficients[1]
+# create a data frame contains the intercept coefficient Jensen's alpha
+alpha_df = data.frame(rbind(alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9, alpha10), row.names =  c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+# reset the column name of the Jensen's alpha data frame
+colnames(alpha_df) = "JensenAlpha"
+```
+
+```{r, echo = FALSE}
+# create a table to show the Jensen's Alpha for industry portfolios
+kable(alpha_df, 
+      col.names = "Jensen's Alpha", 
+      caption = "Jensen's Alpha for Ten Industry Portfolios")
+```
+
+
+**Table 4** shows the Jensen's $\alpha$ for ten industry portfolios. 
+
+### Three-Factor $\alpha$
+
+The three-factor $\alpha$ is the intercept coefficient for Fama-French 3-Factor Model, and the formula for Fama-French 3-Factor Model is below:
+
+$$
+R_i - R_f = \alpha_i + \beta_i(R_m - R_f) + \gamma_i (R_s - R_b) + \delta_i (R_h - R_l) + \epsilon
+$$
+
+Therefore, we need to fit the Fama-French 3-Factor model for specific industry portfolios with market risk, size risk and value risk as independent variables. Furthermore, we could extract the intercept coefficient of Fama-French 3-Factor model as three-factor $\alpha$ for each industry portfolios. 
+
+```{r, include = FALSE}
+# add the column of size risk to return data frame
+return_df$size_risk = factor_df$SMB
+# add the column of value risk to return data frame
+return_df$value_risk = factor_df$HML
+```
+
+```{r, include=FALSE}
+# fit the fama-french 3 factor model for NoDur industry
+model11 = lm(NoDur ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for NoDur
+alpha11 = summary(model11)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for Durbl industry
+model12 = lm(Durbl ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for Durbl
+alpha12 = summary(model12)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fame-french 3 factor model for Manuf industry
+model13 = lm(Manuf ~ market_risk + size_risk + value_risk, data = return_df)
+# intercpet coefficient of the model for Manuf
+alpha13 = summary(model13)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for Enrgy industry
+model14 = lm(Enrgy ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of model for Enrgy
+alpha14 = summary(model14)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for HiTec industry
+model15 = lm(HiTec ~  market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of model for HiTec
+alpha15 = summary(model15)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for Telcm industry
+model16 = lm(Telcm ~ market_risk + size_risk + value_risk, data = return_df)
+# intercpet coefficient of model for Telcm
+alpha16 = summary(model16)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for Shops industry
+model17 = lm(Shops ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficien of model for Shops
+alpha17 = summary(model17)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for Hlth industry
+model18 = lm(Hlth ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for Hlth
+alpha18 = summary(model18)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for Utils industry
+model19 = lm(Utils ~ market_risk + size_risk + value_risk, data = return_df)
+# intercpet coefficient of the mdoel for Utilis
+alpha19 = summary(model19)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# fit the fama-french 3 factor model for other industry
+model20 = lm(Other ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for the other industry
+alpha20 = summary(model20)$coefficients[1]
+```
+
+```{r, include = FALSE}
+# extract the three factor alpha for the industry portfolios
+three_alpha_df = data.frame(rbind(alpha11, alpha12, alpha13, alpha14, alpha15, alpha16, alpha17, alpha18, alpha19, alpha20), 
+                            row.names =  c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+# reset the column name for the three factor alpha data frame
+colnames(three_alpha_df) = "ThreeFactorAlpha"
+```
+
+```{r, echo = FALSE}
+# crate a table to show the three-factor alpha for ten industry portfolios
+kable(three_alpha_df, 
+      col.names = "Three-Factor Alpha",
+      caption = "Three-Factor Alpha for Ten Industry Portfolio")
+```
+
+**Table 5** shows the three-factor $\alpha$ for ten industry portfolios. 
+
+
+## **Question 2: Create a table showing the performance metrics of the ten industry portfolios.**
+
+```{r, echo = FALSE}
+# create a new data frame to include the sharpe ratio, sortino ratio, Treynor ratio, Jensen's alpha and three-factor alpha
+final_df = data.frame(sharpe, sortino, Treynor, alpha_df, three_alpha_df)
+colnames(final_df) = c("sharpe", 'sortino', 'treynor', "Jensen's alpha", 'three-factor alpha')
+
+# create a table to show the performance metrics of ten industry portfolios
+kable(final_df, 
+      col.names = c("Sharpe Ratio", "Sortino Ratio", "Treynor Ratio", "Jensen's Alpha", "Three-Factor Alpha"), 
+      caption = "Sharpe Ratio, Sortino Ratio, Treynor Ratio, Jensen's Alpha and Three-Factor Alpha for Ten Industry Portfolios", digits = 4)
+```
+
+**Table 6** show the Sharpe ratio, Sortino ratio, Treynor ratio, Jensen's Alpha and three-factor Alpha for ten industry portfolios respectively. 
+
+The Sharpe ratio for industry NoDur is `r round(sharpe[1], 4)`, the Sharpe ratio for industry Durbl is `r round(sharpe[2], 4)`, the Sharpe ratio for industry Manuf is `r round(sharpe[3], 4)`, the Sharpe ratio for industry Enrgy is `r round(sharpe[4], 4)`, the Sharpe ratio for industry HiTec is `r round(sharpe[5], 4)`, the Sharpe ratio for industry Telem is `r round(sharpe[6], 4)`, the Sharpe ratio for industry Shops is `r round(sharpe[7], 4)`, the Sharpe ratio for industry Hlth is `r round(sharpe[8], 4)`, the Sharpe ratio for industry Utils is `r round(sharpe[9], 4)`, the Sharpe ratio for other industry is `r round(sharpe[10], 4)`. 
+
+The Sortino ratio for industry NoDur is `r round(sortino[1], 4)`, the Sortino ratio for industry Durbl is `r round(sortino[2], 4)`, the Sortino ratio for industry Manuf is `r round(sortino[3], 4)`, the Sortino ratio for industry Enrgy is `r round(sortino[4], 4)`, the Sortino ratio for industry HiTec is `r round(sortino[5], 4)`, the Sortino ratio for industry Telcm is `r round(sortino[6], 4)`, the Sortino ratio for industry Shops is `r round(sortino[7], 4)`, the Sortino ratio for industry Hlth is `r round(sortino[8], 4)`, the Sortino ratio for industry Utils is `r round(sortino[9], 4)`, the Sortino ratio for other industry is `r round(sortino[10], 4)`. 
+
+The Treynor ratio for NoDur industry is `r round(Treynor$Beta[1], 4)`, the Treynor ratio for Durbl industry is `r round(Treynor$Beta[2], 4)`, the Treynor ratio for Manuf industry is `r round(Treynor$Beta [3], 4)`, the Treynor ratio for Enrgy industry is `r round(Treynor$Beta[4], 4)`, the Treynor ratio for HiTec industry is `r round(Treynor$Beta[5], 4)`, the Treynor ratio for Telcm industry is `r round(Treynor$Beta[6], 4)`, the Treynor ratio for Shops industry is `r round(Treynor$Beta[7], 4)`, the Treynor ratio for Hlth industry is `r round(Treynor$Beta[8], 4)`, the Treynor ratio for Utils industry is `r round(Treynor$Beta[9], 4)`, the Treynor ratio for other industry is `r round(Treynor$Beta[10], 4)`. 
+
+The Jensen's $\alpha$ for NoDur industry is `r round(alpha_df$JensenAlpha[1], 4)`, the Jensen's $\alpha$ for Durbl industry is `r round(alpha_df$JensenAlpha[2], 4)`, the Jensen's $\alpha$ for Manuf industry is `r round(alpha_df$JensenAlpha[3], 4)`, the Jensen's $\alpha$ for Enrgy industry is `r round(alpha_df$JensenAlpha[4], 4)`, the Jensen's $\alpha$ for HiTec industry is `r round(alpha_df$JensenAlpha[5], 4)`, the Jensen's $\alpha$ for Telcm industry is `r round(alpha_df$JensenAlpha[6], 4)`, the Jensen's $\alpha$ for Shops industry is `r round(alpha_df$JensenAlpha[7], 4)`, the Jensen's $\alpha$ for Hlth industry is `r round(alpha_df$JensenAlpha[8], 4)`, the Jensen's $\alpha$ for Utils industry is `r round(alpha_df$JensenAlpha[9], 4)` and the Jensen's $\alpha$ for the other industry is `r round(alpha_df$JensenAlpha[10], 4)`
+
+The three-factor $\alpha$ for NoDur industry is `r round(three_alpha_df$ThreeFactorAlpha[1], 4)`, the three-factor $\alpha$ for Durbl industry is `r round(three_alpha_df$ThreeFactorAlpha[2], 4)`, the three-factor $\alpha$ for Manuf industry is `r round(three_alpha_df$ThreeFactorAlpha[3], 4)`, the three-factor $\alpha$ for Enrgy industry is `r round(three_alpha_df$ThreeFactorAlpha[4], 4)`, the three-factor $\alpha$ for HiTec industry is `r round(three_alpha_df$ThreeFactorAlpha[5], 4)`, the three-factor $\alpha$ for Telcm industry is `r round(three_alpha_df$ThreeFactorAlpha[6], 4)`, the three-factor $\alpha$ for Shops industry is `r round(three_alpha_df$ThreeFactorAlpha[7], 4)`, the three-factor $\alpha$ for Hlth industry is `r round(three_alpha_df$ThreeFactorAlpha[8], 4)`, the three-factor $\alpha$ for Utils industry is `r round(three_alpha_df$ThreeFactorAlpha[9], 4)` and the three-factor $\alpha$ for the other industry is `r round(three_alpha_df$ThreeFactorAlpha[10], 4)`. 
+
+## Downside Beta
+
+```{r}
+for(i in 1:nrow(return_df)){
+  if (return_df[i, 11] <= 0){
+    return_df[i, 14] <- 1
+  }
+  else{
+    return_df[i, 14] <- 0
+  }
+}
+
+colnames(return_df) = c()
+
+```
+
+```{r}
+summary(lm(NoDur ~ market_risk + I(market_risk * V14), data=return_df))
+```
+
+\newpage
+
+# Part 2: Visualization of Performance Metrics
+
+## Question 3: Plot your Results as a Bar Chart for each Performance Metric
+
+### Sharpe Ratio
+
+```{r, echo=FALSE, fig.cap="Sharpe Ratio for Ten Industry Portfolios"}
+# Sharpe ratio bar plot
+final_df %>% 
+  # select the categorical of industry portfolio as x-axis
+  # select Sharpe ratio as y-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = sharpe)) +
+  # plot bar chart and adjust the filling color
+  geom_bar(stat = 'identity', fill ='#F8B195') + 
+  # add the text to show the corresponding Sharpe ratio
+  geom_text(aes(label = round(sharpe, 4)), vjust = 1.5)+
+  # use the minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Sharpe Ratio")
+```
+
+**Figure 1** is the bar plot which shows the Sharpe ratio for each industry portfolio respectively. We could see that the industry of NoDur has the largest Sharpe ratio in this case. That means the industry of NoDur has the largest risk premium per unit of total risk. On the other hand, the other industry has the smallest Sharpe ratio in this case, that means the other industry has the smallest risk premium per unit of total risk. 
+
+### Sortino Ratio (Using Risk-Free Rate as Target)
+
+```{r, echo = FALSE, fig.cap= "Sortino Ratio for Ten Industry Portfolios"}
+# Sortino ratio bar chart
+final_df %>% 
+  # select the categorical of industry portfolio as x-axis
+  # use Sortino ratio as y-axix
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = sortino)) +
+  # plot bar chart and adjst the fill color
+  geom_bar(stat = 'identity', fill ='#F67280') + 
+  # add text of number of Sortino ratio corresponding to each industry portfolios
+  geom_text(aes(label = round(sortino, 4)), vjust = 1.5)+
+  # use minimalist theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Sortino Ratio")
+```
+
+**Figure 2** is the bar plot which shows the Sortino ratio for industry portfolios respectively. We could see that the industry of NoDur has the largest Sortino ratio in this case, that means the industry portfolio of NoDur has the largest expected deviation from risk-free rate, per unit of below-target semi-deviation. On the other hands, the other industry portfolio has the smallest Sortino ratio in this case, that means the other industry portfolio has the smallest expected deviation from risk-free rate, per unit of below-target semi-deviation. 
+
+### Treynor Ratio (Using CAPM $\beta$)
+
+```{r, echo = FALSE, fig.cap="Treynor Ratio for Ten Industry Ratio"}
+# Treynor ratio bar chart
+final_df %>% 
+  # select categorical of industry portfolio as x-axis
+  # use Treynor ratio corresponding to industry portfolio as x-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = treynor)) +
+  # plot the bar chart and adjust the filling color
+  geom_bar(stat = 'identity', fill ='#C06C84') + 
+  # add text to show Treynor ratio corresponding to each industry portfolios
+  geom_text(aes(label = round(treynor, 4)), vjust = 1.5)+
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Treynor Ratio")
+```
+
+**Figure 3** is the bar plot which shows the Treynor ratio for industry portfolios respectively. We could see that the industry of Utils has the largest Treynor ratio in this case, which means the industry portfolio of Utils has the largest risk premium per unit of systemic risk. On the other hands, the other industry portfolio has the smallest Treynor ratio in this case, that represents the other industry portfolio has the smallest risk premium per unit of systemic risk. 
+
+### Jensen's $\alpha$
+
+```{r, echo = FALSE, fig.cap="Jensen's Alpha for Ten Industry Portfolios"}
+# Jensen's alpha bar chart
+final_df %>% 
+  # select categorical of industry portfolio as x-axis
+  # select Jensen's alpha as y-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = `Jensen's alpha`)) +
+  # plot bar chart and adjust filling color
+  geom_bar(stat = 'identity', fill ='#6C5B7B') + 
+  # add text to show Jensen's alpha corresponding industry portfolio
+  geom_text(aes(label = round(`Jensen's alpha`, 4)), vjust = 1.5)+
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Jensen's Alpha")
+```
+
+**Figure 4** is the bar plot which shows the Jensen's $\alpha$ for ten industry portfolios respectively. We could see there are three industry portfolios have the negative Jensen's $\alpha$ in this case, which are Durbl, HiTec and other industry portfolios. If the industry portfolios are active portfolio, that represents these three industry portfolios underperforms the market and the portfolio of Durbl has the most largest negative difference that means the portfolio of Durbl underperforms the worst in this case. On the other hands, the other industry portfolios have the positive Jensen's $\alpha$ that means the other indsutry portfolio outperform the marekt. Furthermore, the industry portfolio of Enrgy has the largest Jensen's $\alpha$ that means that industry portfolio outperform the best relative to the market. 
+
+### Three-Factor $\alpha$
+
+```{r, echo = FALSE, fig.cap="Three-Factor Alpha for Ten Industry Portfolios"}
+# three-factor alpha bar chart
+final_df %>% 
+  # use categorical of industry portoflios as x-axis
+  # use three-factor alpha as y-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = `three-factor alpha`)) +
+  # plot bar chart and adjst filling color
+  geom_bar(stat = 'identity', fill ='#355C7D') + 
+  # add text to show three-factor alpha corresponding to industry portfolio
+  geom_text(aes(label = round(`three-factor alpha`, 4)), vjust = 1.5) +
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Three-Factor Alpha")
+```
+
+**Figure 5** shows the three-factor $\alpha$ for ten industry portfolios respectively. We could see that there are three industry portfolios have the negative three-factor $\alpha$ which are Durbl, HiTec and other industry portfolios, That represents the these industry portfolio underperform the market after consider size risk and value risk. Meanwhile, the industry portfolio of Durbl has the most negative three-factor $\alpha$ that represents it has the worst performance on beating the market with 3 risk factors. On the other hands, the rest of industry portfolios have the positive three-factor $\alpha$, that means they outperform the market after consider the size risk and value risk. Furthermore, the industry portfolio of Enrgy has the largest three-factor $\alpha$, which means the it has the best performance on beating the market. 
+
+\newpage
+
+# Part 3: Briefly Explain the Economic Signficance of Performance Ratios
+
+## Sharpe Ratio
+
+The Sharpe ratio formula is below:
+
+$$
+S_i = \frac{E(R_i- R_f)}{\sqrt{\text{Var}(R_i - R_f)}}
+$$
+
+The Sharpe ratio measure the risk premium per unit of total risk. Base on the formula, $E(R_i - R_f)$ on the numerator represent the expectation of excess return for each portfolio relative to risk-free rate. As the investor would like to compare the excess return for portfolio and seek for the highest one for portfolio selection. 
+
+However, the total risk for each asset or portfolio is different and the investor could not compare the excess return without considering about the total risk. Thus, the investor would like to check the excess return of same unit of total risk. Therefore, $\sqrt{\text{Var}(R_i - R_f)}$ on the denominator measure the total risk of excess return. Then, we could use the Sharpe ratio to figure out 
+
+As the Sharpe ratio could measure the excess return of portfolio per unit of total risk, then the investor could measure the risk premium per unit of total risk. Moreover, the asset or portfolio have the highest Sharpe ratio, that means the asset or portfolio have the highest risk premium per unit of total risk and the investor would like to select that one. 
+
+## Sortino Ratio
+
+The Sortino ratio formula is below:
+
+$$
+S_{t_i} = \frac{E(R_i - R_t)}{\sqrt{\text{SV}(R_i; R_t)}}
+$$
+
+
+$$
+SV(R_i; R_t) = \frac{1}{T} \sum_{t=1}^{T} \text{min} (R_{it} - R_{ft}, 0) ^ 2
+$$
+
+Sortino ratio measured the expected deviation from target return per unit of below-target semi-deviation. As well, the below-target semi-deviation considered as the downside risk and that means the risk of return of portfolio fall below target return and the return for the investment have losses relative to risk-free rate. 
+
+Base on the formula, $E(R_i - R_f)$ on numerator, which is same with Sharpe ratio numerator, also represent the expectation of excess return for asset or portfolio. As the investor would like to measure the excess return per unit of risk of the return lower than the target return for the investors. 
+
+Thus, the below-target semi-variance would measure the risk of asset return lower than the target, also considered as downside risk. It would only take the part of asset return lower than the target return, by $\text{min}(R_{it} - R_{ft})$. 
+
+Overall, the Sortino ratio measure the risk premium per unit of risk of losses relative to target return. If the asset or portfolio have the higher Sortino ratio that means the asset or portfolio would have higher risk premium for per unit of risk of losses. On the other hands, if the asset or portfolio have the lower Sortino ratio that means the asset or portfolio would have lower risk premium for per unit of risk of losses. The investors would like to select the asset or portfolio with higher Sortino ratio to have more risk premium with given unit risk of losses relative to target return. 
+
+
+## Treynor Ratio
+
+The Treynor ratio formula is below:
+$$
+T_i = \frac{E(R_i - R_f)}{\beta_i}
+$$
+
+The Treynor ratio measures the risk premium for asset or portfolio per unit of market risk. Based on the formula, $E(R_i - R_f)$ on numerator is same with other two ratios, that means the expectation of excess return for the asset or portfolio. However, the $\beta$ represents the market risk for the asset or portfolio and that could not be reduced by diversification. As the investor would like to measure the excess return on the unit of market risk for diversified portfolio. Thus, we could use the Treynor ratio measures the risk premium for asset or portfolio per unit of market risk. 
+
+If the asset or portfolio have the higher Treynor risk, that demonstrates the asset or portfolio would have higher risk premium for each unit of market risk. On the other hands, if the asset or portfolio have the lower Treynor risk, that demonstrates the asset or portfolio would have lower risk premium for each unit of market risk. Thus, the investors would like to select the portfolio with higher Treynor ratio to have higher risk premiun with given unit market risk. 
+
+
+
+\newpage
+
+# Appendix
+
+## `Part 1 - Sharpe Ratio`
+
+```{r, results='hide'}
+# import the data frame of risk factors for fama-french model
+factor_df = read_excel("Risk_Factors.xlsx") %>% 
+  # drop the column of data
+  select(!Date)
+# import the data frame of industry portfolios
+industry_df = read_excel("Industry_Portfolios.xlsx")
+# drop the column of data frame 
+industry_df = industry_df %>% 
+  select(!Date)
+```
+
+```{r, results='hide'}
+# compute the excess return of industry portfolios
+excess_industry_df = industry_df - factor_df$Rf
+# compute the mean of excess return of industry portfolios
+excess_return = colMeans(excess_industry_df)
+# compute the variance of excess return of industry portfolios
+var_return = diag(cov(excess_industry_df))
+```
+
+```{r, results='hide'}
+# compute the Sharpe ratio
+sharpe = excess_return / sqrt(var_return)
+# create a table to show the sharpe ratio
+kable(sharpe, 
+      col.names = "Sharpe Ratio", 
+      caption = "The Sharpe ratio for Ten Industry Portfolios")
+```
+
+## `Part 1 - Sortino Ratio`
+
+```{r, results='hide'}
+# compute the below-target semi-variance
+semivar_df = data.frame()
+for (i in seq(nrow(excess_industry_df))){
+  for (j in seq(ncol(excess_industry_df))){
+    if(excess_industry_df[i, j] < 0){
+      semivar_df[i, j] = excess_industry_df[i, j] ^ 2
+    } else{
+      semivar_df[i, j] = 0
+    }
+  }
+}
+# reset the column name for semi-variance dataframe
+colnames(semivar_df) = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")
+# compute the below-target semi-variance
+semidev_target = colMeans(semivar_df)
+```
+
+```{r, results='hide'}
+# compute the sortino ratio for industry portfolios
+sortino = excess_return / sqrt(semidev_target)
+# create a table to show the sortiono ratio for industry portfolios
+kable(sortino, 
+      col.names = "Sortino Ratio", 
+      caption = "The Sortino Ratio for Ten Industry Portfolios")
+```
+
+
+## `Part 1 - Treynor Ratio`
+
+```{r, results='hide'}
+# create a data frame includes the excess return
+return_df = data.frame(excess_industry_df)
+# add the market excess return into the data frame
+return_df$market_risk = factor_df$`Rm-Rf`
+```
+
+```{r, results='hide'}
+# fit the market model for industry NoDur
+model1 = lm(NoDur ~ market_risk, data = return_df)
+# beta of CAPM for industry NoDur
+beta1 = summary(model1)$coefficients[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Durbl
+model2 = lm(Durbl ~ market_risk, data = return_df)
+# beta of CAPM for industry Durbl
+beta2 = summary(model2)$coefficients[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Manuf
+model3 = lm(Manuf ~ market_risk, data = return_df)
+# beta of CAPM for industry Manuf
+beta3 = summary(model3)$coefficients[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Enrgy
+model4 = lm(Enrgy ~ market_risk, data = return_df)
+# beta of CAPM for industry Enrgy
+beta4 = summary(model4)$coefficient[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry HiTec
+model5 = lm(HiTec ~ market_risk, data = return_df)
+# beta of CAPM for industry HiTec
+beta5 = summary(model5)$coefficient[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Telcm
+model6 = lm(Telcm ~ market_risk, data = return_df)
+# beta of CAPM for industry Telcm
+beta6 = summary(model6)$coefficient[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Shops
+model7 = lm(Shops ~ market_risk, data = return_df)
+# beta of CAPM for industry Shops
+beta7 = summary(model7)$coefficient[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Hlth
+model8 = lm(Hlth ~ market_risk, data = return_df)
+# beta of CAPM for industry Hlth
+beta8 = summary(model8)$coefficient[2]
+```
+
+```{r, results='hide'}
+# fit the market model for industry Utils
+model9 = lm(Utils ~ market_risk, data = return_df)
+# beta of CAPM for industry Utils
+beta9 = summary(model9)$coefficient[2]
+```
+
+```{r, results='hide'}
+# fit the market model for other industry
+model10 = lm(Other ~ market_risk, data = return_df)
+# beta of CAPM for other industry
+beta10 = summary(model10)$coefficient[2]
+```
+
+```{r, results='hide'}
+# extract the slope coefficient from each market model
+beta_df = data.frame(rbind(beta1, beta2, beta3, beta4, beta5, beta6, beta7, beta8, beta9, beta10), 
+                     row.names = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+
+# reset the column name for beta data frame
+colnames(beta_df) = "Beta"
+```
+
+```{r, results='hide'}
+# compute the Treynor ratio for each industry portfolio
+Treynor = excess_return / beta_df
+# create a table to show Treynor ratio for industry portfolios
+kable(Treynor, 
+      col.names = "Treynor Ratio", 
+      caption = "The Treynor Ratio for Ten Industry Portfolios")
+```
+
+## `Part 1 - Jensen's Alpha`
+
+```{r, results='hide'}
+# extract the intercept coefficients from the market model for each industry portfolios
+alpha1 = summary(model1)$coefficients[1]
+alpha2 = summary(model2)$coefficients[1]
+alpha3 = summary(model3)$coefficients[1]
+alpha4 = summary(model4)$coefficients[1]
+alpha5 = summary(model5)$coefficients[1]
+alpha6 = summary(model6)$coefficients[1]
+alpha7 = summary(model7)$coefficients[1]
+alpha8 = summary(model8)$coefficients[1]
+alpha9 = summary(model9)$coefficients[1]
+alpha10 = summary(model10)$coefficients[1]
+# create a data frame contains the intercept coefficient Jensen's alpha
+alpha_df = data.frame(rbind(alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9, alpha10), row.names =  c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+# reset the column name of the Jensen's alpha data frame
+colnames(alpha_df) = "JensenAlpha"
+```
+
+```{r, results='hide'}
+# create a table to show the Jensen's Alpha for industry portfolios
+kable(alpha_df, 
+      col.names = "Jensen's Alpha", 
+      caption = "Jensen's Alpha for Ten Industry Portfolios")
+```
+
+## `Part 1 - Three-Factor Alpha`
+
+```{r, results='hide'}
+# add the column of size risk to return data frame
+return_df$size_risk = factor_df$SMB
+# add the column of value risk to return data frame
+return_df$value_risk = factor_df$HML
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for NoDur industry
+model11 = lm(NoDur ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for NoDur
+alpha11 = summary(model11)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for Durbl industry
+model12 = lm(Durbl ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for Durbl
+alpha12 = summary(model12)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fame-french 3 factor model for Manuf industry
+model13 = lm(Manuf ~ market_risk + size_risk + value_risk, data = return_df)
+# intercpet coefficient of the model for Manuf
+alpha13 = summary(model13)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for Enrgy industry
+model14 = lm(Enrgy ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of model for Enrgy
+alpha14 = summary(model14)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for HiTec industry
+model15 = lm(HiTec ~  market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of model for HiTec
+alpha15 = summary(model15)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for Telcm industry
+model16 = lm(Telcm ~ market_risk + size_risk + value_risk, data = return_df)
+# intercpet coefficient of model for Telcm
+alpha16 = summary(model16)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for Shops industry
+model17 = lm(Shops ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficien of model for Shops
+alpha17 = summary(model17)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for Hlth industry
+model18 = lm(Hlth ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for Hlth
+alpha18 = summary(model18)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for Utils industry
+model19 = lm(Utils ~ market_risk + size_risk + value_risk, data = return_df)
+# intercpet coefficient of the mdoel for Utilis
+alpha19 = summary(model19)$coefficients[1]
+```
+
+```{r, results='hide'}
+# fit the fama-french 3 factor model for other industry
+model20 = lm(Other ~ market_risk + size_risk + value_risk, data = return_df)
+# intercept coefficient of the model for the other industry
+alpha20 = summary(model20)$coefficients[1]
+```
+
+```{r, results='hide'}
+# extract the three factor alpha for the industry portfolios
+three_alpha_df = data.frame(rbind(alpha11, alpha12, alpha13, alpha14, alpha15, alpha16, alpha17, alpha18, alpha19, alpha20), 
+                            row.names =  c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other"))
+# reset the column name for the three factor alpha data frame
+colnames(three_alpha_df) = "ThreeFactorAlpha"
+```
+
+```{r, results='hide'}
+# crate a table to show the three-factor alpha for ten industry portfolios
+kable(three_alpha_df, 
+      col.names = "Three-Factor Alpha",
+      caption = "Three-Factor Alpha for Ten Industry Portfolio")
+```
+
+## `Part 1 - Question 2`
+
+```{r, results='hide'}
+# create a new data frame to include the sharpe ratio, sortino ratio, Treynor ratio, Jensen's alpha and three-factor alpha
+final_df = data.frame(sharpe, sortino, Treynor, alpha_df, three_alpha_df)
+colnames(final_df) = c("sharpe", 'sortino', 'treynor', "Jensen's alpha", 'three-factor alpha')
+
+# create a table to show the performance metrics of ten industry portfolios
+kable(final_df, 
+      col.names = c("Sharpe Ratio", "Sortino Ratio", "Treynor Ratio", "Jensen's Alpha", "Three-Factor Alpha"), 
+      caption = "Sharpe Ratio, Sortino Ratio, Treynor Ratio, Jensen's Alpha and Three-Factor Alpha for Ten Industry Portfolios", digits = 4)
+```
+
+## `Part 2 - Sharpe Ratio`
+
+```{r, fig.show='hide'}
+# Sharpe ratio bar plot
+final_df %>% 
+  # select the categorical of industry portfolio as x-axis
+  # select Sharpe ratio as y-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = sharpe)) +
+  # plot bar chart and adjust the filling color
+  geom_bar(stat = 'identity', fill ='#F8B195') + 
+  # add the text to show the corresponding Sharpe ratio
+  geom_text(aes(label = round(sharpe, 4)), vjust = 1.5)+
+  # use the minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Sharpe Ratio")
+```
+
+\newpage
+
+## `Part 2 - Sortino Ratio`
+
+```{r, fig.show='hide'}
+# Sortino ratio bar chart
+final_df %>% 
+  # select the categorical of industry portfolio as x-axis
+  # use Sortino ratio as y-axix
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = sortino)) +
+  # plot bar chart and adjst the fill color
+  geom_bar(stat = 'identity', fill ='#F67280') + 
+  # add text of number of Sortino ratio corresponding to each industry portfolios
+  geom_text(aes(label = round(sortino, 4)), vjust = 1.5)+
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Sortino Ratio")
+```
+
+## `Part 2 - Treynor Ratio`
+
+```{r, fig.show='hide'}
+# Treynor ratio bar chart
+final_df %>% 
+  # select categorical of industry portfolio as x-axis
+  # use Treynor ratio corresponding to industry portfolio as x-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = treynor)) +
+  # plot the bar chart and adjust the filling color
+  geom_bar(stat = 'identity', fill ='#C06C84') + 
+  # add text to show Treynor ratio corresponding to each industry portfolios
+  geom_text(aes(label = round(treynor, 4)), vjust = 1.5)+
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Treynor Ratio")
+```
+
+## `Part 2 - Jensen's alpha`
+
+```{r, fig.show='hide'}
+# Jensen's alpha bar chart
+final_df %>% 
+  # select categorical of industry portfolio as x-axis
+  # select Jensen's alpha as y-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = `Jensen's alpha`)) +
+  # plot bar chart and adjust filling color
+  geom_bar(stat = 'identity', fill ='#6C5B7B') + 
+  # add text to show Jensen's alpha corresponding industry portfolio
+  geom_text(aes(label = round(`Jensen's alpha`, 4)), vjust = 1.5)+
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Jensen's Alpha")
+```
+
+## `Part 2 - Three-Factor alpha`
+
+```{r, fig.show='hide'}
+# three-factor alpha bar chart
+final_df %>% 
+  # use categorical of industry portoflios as x-axis
+  # use three-factor alpha as y-axis
+  ggplot(aes(x = factor(row.names(final_df), levels = c("NoDur", "Durbl", "Manuf", "Enrgy", "HiTec", "Telcm", "Shops", "Hlth", "Utils", "Other")), y = `three-factor alpha`)) +
+  # plot bar chart and adjst filling color
+  geom_bar(stat = 'identity', fill ='#355C7D') + 
+  # add text to show three-factor alpha corresponding to industry portfolio
+  geom_text(aes(label = round(`three-factor alpha`, 4)), vjust = 1.5) +
+  # use minimalistic theme
+  theme_minimal() +
+  # add x label
+  xlab("Industry Portfolios") + 
+  # add y label
+  ylab("Three-Factor Alpha")
+```
