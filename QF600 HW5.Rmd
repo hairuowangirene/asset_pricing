@@ -1,0 +1,288 @@
+---
+title: "QF600 Asset Pricing Homework 5"
+author: "Wang Hairuo"
+date: '2022-10-24'
+output:
+  pdf_document:
+    template: report.tex
+    toc: yes
+    toc_depth: 2
+lang: en
+subtitle: Stochastic Discount Factor
+titlepage: yes
+titlepage-color: 6C3082
+titlepage-text-color: FFFFFF
+titlepage-rule-color: FFFFFF
+titlepage-rule-height: 2
+---
+
+\newpage
+
+Suppose that consumption growth has log normal distribution with the possibility of rare disasters:
+
+$$
+\ln{\tilde{g}} = 0.02 + 0.02 \tilde{\epsilon} + \tilde{\nu}
+$$
+
+Here $\epsilon$ is a standard normal random variable, while $\nu$ is an independent random variable that has value of either zero (with probability of 98.3%) or ln(0.65) (with probability of 1.7%).
+
+Simulate $\epsilon$ with (at least) 10^4 random draws from a standard normal distribution, and simulate $\nu$ with (at least) 10^4 random draws from a standard uniform distribution.
+
+Use the simulated distribution of consumption growth to find the simulated distribution of the pricing kernel for power utility:
+
+$$
+\tilde{M} = 0.99 \tilde{g}^{-\gamma}
+$$
+
+Repeat this process for all values of $\gamma$ in the range from 1 to 4, in increments of 0.1 (or less). (Note that you can reuse the same simulated distribution of consumption growth for all values of $\gamma$). 
+
+```{r, include=FALSE}
+# import the library
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+```
+
+# Question 1: Calculate $\mu_M$ and $\sigma_M$ for each value of $\gamma$, and plot $\sigma_M$/$\mu_M$ (on the vertical line) vs $\gamma$ (on the horizontal line)
+
+```{r, include=FALSE}
+# set seed in order to get the same result for simulation
+set.seed(600)
+# number of simulation for epsilon and nu
+n_simulation = 10^4
+```
+
+```{r, include=FALSE}
+# create a data frame to save the consumption growth after exponentiation
+g_df = data.frame()
+
+# simulate the consumption growth after exponentiation
+for (i in 1:n_simulation){
+  # simulate epsilon from standard normal distribution
+  epsilon = rnorm(1, mean = 0, sd = 1)
+  # simulate probability of rare disaster occurs from standard uniform distribution
+  random_nu = runif(1, 0, 1)
+  # with probability of 1.7% for rare disaster occurs
+  if (random_nu <= 0.017){
+    # the effect of rare disaster for consumption growth is log(0.65)
+    nu = log(0.65)
+  }
+  # with probability of 98.3% for rare disaster does not occurs
+  else{
+    # the effect of rare disaster for consumption growth is 0
+    nu = 0
+  }
+  # compute consumption growth after exponentiation
+  random_g = exp(0.02 + 0.02 * epsilon + nu)
+  # save them into the data frame
+  g_df[i, 1] = random_g
+}
+```
+
+```{r, include=FALSE}
+# set up the given value for relative risk aversion
+gamma = seq(1, 4, 0.001)
+# create a data frame for mean of pricing kernel
+mean_m = data.frame()
+# create a data frame for standard deviation for pricing kernel
+sd_m = data.frame()
+# compute pricing kernel with each value of relative risk aversion
+for (i in gamma){
+  M = 0.99 * g_df ^ (-i)
+  mean_m[nrow(mean_m) + 1, 1] = colMeans(M)
+  sd_m[nrow(sd_m) + 1, 1] = apply(M, 2, sd)
+}
+# compute the volatility ratio for pricing kernel
+ratio_m = sd_m / mean_m
+```
+
+```{r, echo=FALSE}
+# the mean of pricing kernel for the first ten relative risk aversion
+mean_df = head(mean_m, 10)
+# the standard deviation of pricing kernel for the first ten relative risk aversion
+sd_df = head(sd_m, 10)
+# put the mean and standard deviation of pricing kernel into one data frame
+table_df = data.frame(mean_df, sd_df)
+# show the table of mean and standard deviation of pricing kernel for the first ten relative risk aversion
+kable(table_df, 
+      col.names = c("Mean of Pricing Kernel", "Standard Deviation of Pricing Kernel"), 
+      caption = "Mean and Standard Deviation of Pricing Kernel for First Ten Relative Risk Aversion")
+```
+
+**Table 1** shows the mean and standard deviation of pricing kernel for the first ten value of relative risk aversion. 
+
+```{r, include=FALSE}
+# save the volatility ratio for pricing kernel and relative risk aversion into one data frame
+plot_df = data.frame(ratio_m, gamma)
+# rename the column of data frame
+colnames(plot_df) = c("ratio_M", "gamma")
+```
+
+```{r, echo=FALSE, fig.cap="The Plot for Volatility Ratio for Pricing Kernel and Relative Risk Aversion"}
+# plot the volatility ratio for pricing kernel verus relative risk aversion
+plot_df %>% 
+  # relative risk aversion on x-axis and volatility ratio for pricing kernel on y-axis
+  ggplot(aes(x = gamma, y = ratio_M)) + 
+  # connect the observation in the order in data frame
+  geom_path() + 
+  # use the minimalistic theme for the plot
+  theme_minimal() + 
+  # add x label
+  xlab(expression(gamma - "Relative Risk Aversion")) + 
+  # add y label
+  ylab(expression(frac(sigma~scriptscriptstyle(M), mu~scriptscriptstyle(M)) - "Volatility Ratio for Pricing Kernel"))
+```
+
+According to **Figure 1**, which shows the volatility ratio for pricing kernel with the different value of $\gamma$ relative risk aversion. 
+
+\newpage
+
+# Question 2: Find the smallest value of $\gamma$ (in your data) for which $\frac{\sigma_M}{\mu_M}$ > 0.4, so that the Hansen-Jagannathan bound is satisfied. Explain the economic significant of the results. 
+
+```{r, include=FALSE}
+# set up the given value for relative risk aversion
+gamma = seq(1, 4, 0.001)
+# create a data frame for the relative risk aversion with volatility ratio is greater than 0.4
+HJ_df = data.frame()
+
+# compute pricing kernel with each value of relative risk aversion
+for (i in gamma){
+  M = 0.99 * g_df ^ (-i)
+  # if the volatility ratio for pricing kernel is greater than 0.4
+  if ((apply(M, 2, sd) / colMeans(M)) > 0.4){
+    # then put the gamma into the data frame
+    HJ_df[nrow(HJ_df) + 1, 1] = i
+  }
+}
+# the smallest value for relative risk aversion with volatility ratio for pricing kernel is greater than 0.4
+min(HJ_df)
+```
+
+After we perform the computation for volatility ratio for pricing kernel again, and then **we could conclude that the smallest value of $\gamma$ for which $\frac{\sigma_M}{\mu_M}$ > 0.4 is `r min(HJ_df)`.** The result of minimum value of $\gamma$ for which, $\frac{\sigma_M}{\mu_M}$ is greater than 0.4, is similar with the plot above. 
+
+The $\gamma$ in pricing kernel with power utility represents the relative risk aversion, therefore the goal for minimize the $\gamma$ is to figure out the smallest value and the acceptable degrees of relative risk aversion as well. Furthermore, the $\frac{\sigma_M}{\mu_M}$ represents the volatility ratio for pricing kernel and by the Hansen-Jagannathan bound, then the volatility ratio cannot less than the Sharpe ratio. As the Sharpe ratio is around 0.4 for U.S. stock market, then the volatility ratio must be greater than 0.4 for the U.S. stock market. 
+
+Then the result for question 2, the minimum value for relative risk aversion is `r min(HJ_df)` for the volatility ratio of pricing kernel which greater than the 0.4 of Sharpe ratio for U.S. stock market, which represents the acceptable degree of relative risk aversion is greater or equal to `r min(HJ_df)`. As well, that means there is no equity premium puzzle based on the Sharpe ratio of U.S. stock market because there is no unreasonablely high degree of relative risk aversion. 
+
+
+\newpage
+
+# Appendix
+
+## Set up Code
+
+```{r, results='hide'}
+# import the library
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+```
+
+## `Question 1 Code`
+
+```{r, results='hide'}
+# set seed in order to get the same result for simulation
+set.seed(600)
+# number of simulation for epsilon and nu
+n_simulation = 10^4
+```
+
+```{r, results='hide'}
+# create a data frame to save the consumption growth after exponentiation
+g_df = data.frame()
+
+# simulate the consumption growth after exponentiation
+for (i in 1:n_simulation){
+  # simulate epsilon from standard normal distribution
+  epsilon = rnorm(1, mean = 0, sd = 1)
+  # simulate probability of rare disaster occurs from standard uniform distribution
+  random_nu = runif(1, 0, 1)
+  # with probability of 1.7% for rare disaster occurs
+  if (random_nu <= 0.017){
+    # the effect of rare disaster for consumption growth is log(0.65)
+    nu = log(0.65)
+  }
+  # with probability of 98.3% for rare disaster does not occurs
+  else{
+    # the effect of rare disaster for consumption growth is 0
+    nu = 0
+  }
+  # compute consumption growth after exponentiation
+  random_g = exp(0.02 + 0.02 * epsilon + nu)
+  # save them into the data frame
+  g_df[i, 1] = random_g
+}
+```
+
+```{r, results='hide'}
+# set up the given value for relative risk aversion
+gamma = seq(1, 4, 0.001)
+# create a data frame for mean of pricing kernel
+mean_m = data.frame()
+# create a data frame for standard deviation for pricing kernel
+sd_m = data.frame()
+# compute pricing kernel with each value of relative risk aversion
+for (i in gamma){
+  M = 0.99 * g_df ^ (-i)
+  mean_m[nrow(mean_m) + 1, 1] = colMeans(M)
+  sd_m[nrow(sd_m) + 1, 1] = apply(M, 2, sd)
+}
+# compute the volatility ratio for pricing kernel
+ratio_m = sd_m / mean_m
+```
+
+```{r, eval=FALSE}
+# the mean of pricing kernel for the first ten relative risk aversion
+mean_df = head(mean_m, 10)
+# the standard deviation of pricing kernel for the first ten relative risk aversion
+sd_df = head(sd_m, 10)
+# put the mean and standard deviation of pricing kernel into one data frame
+table_df = data.frame(mean_df, sd_df)
+# show the table of mean and standard deviation of pricing kernel for the first ten relative risk aversion
+kable(table_df, 
+      col.names = c("Mean of Pricing Kernel", "Standard Deviation of Pricing Kernel"), 
+      caption = "Mean and Standard Deviation of Pricing Kernel for First Ten Relative Risk Aversion")
+```
+
+```{r, results='hide'}
+# save the volatility ratio for pricing kernel and relative risk aversion into one data frame
+plot_df = data.frame(ratio_m, gamma)
+# rename the column of data frame
+colnames(plot_df) = c("ratio_M", "gamma")
+```
+
+```{r, fig.show='hide'}
+# plot the volatility ratio for pricing kernel verus relative risk aversion
+plot_df %>% 
+  # relative risk aversion on x-axis and volatility ratio for pricing kernel on y-axis
+  ggplot(aes(x = gamma, y = ratio_M)) + 
+  # connect the observation in the order in data frame
+  geom_path() + 
+  # use the minimalistic theme for the plot
+  theme_minimal() + 
+  # add x label
+  xlab(expression(gamma - "Relative Risk Aversion")) + 
+  # add y label
+  ylab(expression(frac(sigma~scriptscriptstyle(M), mu~scriptscriptstyle(M)) - "Volatility Ratio for Pricing Kernel"))
+```
+
+## `Question 2 Code`
+
+```{r, results='hide'}
+# set up the given value for relative risk aversion
+gamma = seq(1, 4, 0.001)
+# create a data frame for the relative risk aversion with volatility ratio is greater than 0.4
+HJ_df = data.frame()
+
+# compute pricing kernel with each value of relative risk aversion
+for (i in gamma){
+  M = 0.99 * g_df ^ (-i)
+  # if the volatility ratio for pricing kernel is greater than 0.4
+  if ((apply(M, 2, sd) / colMeans(M)) > 0.4){
+    # then put the gamma into the data frame
+    HJ_df[nrow(HJ_df) + 1, 1] = i
+  }
+}
+# the smallest value for relative risk aversion with volatility ratio for pricing kernel is greater than 0.4
+min(HJ_df)
+```
